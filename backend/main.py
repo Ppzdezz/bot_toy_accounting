@@ -5,4 +5,8 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {
+        "project": "Toy Inventory AI System",
+        "status": "online",
+        "version": "1.0.0"
+    }
