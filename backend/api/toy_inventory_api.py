@@ -9,7 +9,7 @@ import cv2
 import easyocr
 import json
 from datetime import datetime
-from Ai.detect_toys import ToyEnsembleDetector
+from backend.api.Ai.detect_toys import ToyEnsembleDetector
 
 app = FastAPI()
 
