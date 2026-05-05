@@ -1,6 +1,9 @@
 import aiosqlite
+from pathlib import Path
 
-DB_NAME = "database.db"
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent  # .../bot_toy_accounting
+DB_NAME = str(PROJECT_ROOT / "database.db")
 
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:

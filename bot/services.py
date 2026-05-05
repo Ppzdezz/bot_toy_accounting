@@ -9,7 +9,7 @@ async def get_all_users():
 
 async def update_inventory(new_data: dict):
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT product_name, quantity FROM inventory") as cursor:
+        async with db.execute("SELECT product_name, quantity FROM shelf") as cursor:
             rows = await cursor.fetchall()
 
         old_data = {name: qty for name, qty in rows}
@@ -22,7 +22,7 @@ async def update_inventory(new_data: dict):
                 sold = old_qty - new_qty
 
                 async with db.execute(
-                    "SELECT price FROM products WHERE name=?",
+                    "SELECT price FROM warehouse WHERE product_name=?",
                     (product,)
                 ) as cursor:
                     row = await cursor.fetchone()
@@ -35,7 +35,7 @@ async def update_inventory(new_data: dict):
 
             # оновлення складу
             await db.execute(
-                "INSERT OR REPLACE INTO inventory (product_name, quantity) VALUES (?, ?)",
+                "INSERT OR REPLACE INTO shelf (product_name, quantity) VALUES (?, ?)",
                 (product, new_qty)
             )
 
@@ -50,11 +50,11 @@ async def get_warehouse():
 async def add_item_to_warehouse(name: str, qty: int, price: float):
     async with aiosqlite.connect(DB_NAME) as db:                
         await db.execute("""
-            INSERT INTO warehouse (product_name, quantity)
-            VALUES (?, ?)
+            INSERT INTO warehouse (product_name, quantity, price)
+            VALUES (?, ?, ?)
             ON CONFLICT(product_name)
             DO UPDATE SET quantity = quantity + excluded.quantity
-        """, (name, qty))
+        """, (name, qty, price))
 
         await db.commit()
 
@@ -112,7 +112,7 @@ async def update_shelf_from_ai(detected: dict):
             if diff > 0:
                 # продаж
                 async with db.execute(
-                    "SELECT price FROM products WHERE name=?",
+                    "SELECT price FROM warehouse WHERE product_name=?",
                     (product,)
                 ) as cur:
                     price_row = await cur.fetchone()
@@ -141,6 +141,28 @@ async def get_sales_today():
             SELECT SUM(quantity), SUM(total_price)
             FROM sales
             WHERE date(created_at) = date('now')
+        """) as cursor:
+            return await cursor.fetchone()
+
+
+async def get_sales_last_days(days: int):
+    if days <= 0:
+        raise ValueError("days must be > 0")
+
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("""
+            SELECT SUM(quantity), SUM(total_price)
+            FROM sales
+            WHERE date(created_at) >= date('now', ?)
+        """, (f"-{days - 1} day",)) as cursor:
+            return await cursor.fetchone()
+
+
+async def get_sales_all_time():
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("""
+            SELECT SUM(quantity), SUM(total_price)
+            FROM sales
         """) as cursor:
             return await cursor.fetchone()
         
