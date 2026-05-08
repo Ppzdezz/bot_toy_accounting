@@ -1,7 +1,7 @@
 import os
 import sys
-import pathlib # Додаємо це
-from fastapi import FastAPI, File, Path, UploadFile # Path тут залишається для FastAPI
+import pathlib 
+from fastapi import FastAPI, File, Path, UploadFile 
 import sqlite3
 import cv2
 import easyocr
@@ -94,11 +94,11 @@ async def on_startup():
     print(f"[startup] CURRENT_DIR={CURRENT_DIR}")
     print(f"[startup] PROJECT_ROOT={PROJECT_ROOT}")
 
-# Будуємо шлях до моделей
+
 MODEL10_PATH = CURRENT_DIR / "Ai" / "models" / "best_v10.pt"
 MODEL11_PATH = CURRENT_DIR / "Ai" / "models" / "best_v11.pt"
 
-# Ініціалізація детектора
+
 detector = ToyEnsembleDetector(
     model10_path=str(MODEL10_PATH),
     model11_path=str(MODEL11_PATH)
