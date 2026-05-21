@@ -111,19 +111,44 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def is_price_tag_near(toy_bbox, price_tags, threshold=150):
+   
+    t_x1, t_y1, t_x2, t_y2 = toy_bbox
+    toy_center_x = (t_x1 + t_x2) / 2
+    toy_center_y = (t_y1 + t_y2) / 2
+
+    for tag in price_tags:
+        p_x1, p_y1, p_x2, p_y2 = tag["bbox"]
+        tag_center_x = (p_x1 + p_x2) / 2
+        tag_center_y = (p_y1 + p_y2) / 2
+
+     
+        distance = ((toy_center_x - tag_center_x) ** 2 + (toy_center_y - tag_center_y) ** 2) ** 0.5
+        
+    
+        if distance <= threshold:
+            return True
+            
+    return False
+
 @app.post("/process-inventory/")
 async def process_inventory(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
 
-
     detection_result = detector.detect(file_path)
     
-    new_qty = len(detection_result["toys"])
+    
+    verified_toys = []
+    for toy in detection_result["toys"]:
+        if is_price_tag_near(toy["bbox"], detection_result["price_tags"]):
+            verified_toys.append(toy)
+            
+   
+    new_qty = len(verified_toys)
     product_label = "toy" 
 
-   
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -147,7 +172,6 @@ async def process_inventory(file: UploadFile = File(...)):
         )
         total_earned = sold_count * price
 
-    
     img = cv2.imread(file_path)
     for tag in detection_result["price_tags"]:
         x1, y1, x2, y2 = tag["bbox"]
@@ -169,9 +193,12 @@ async def process_inventory(file: UploadFile = File(...)):
         "detected_toys": new_qty,
         "sold_count": sold_count,
         "total_earned": total_earned,
-        "details": detection_result
+        "details": {
+            "toys": verified_toys, 
+            "price_tags": detection_result["price_tags"]
+        }
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080) 
+    uvicorn.run(app, host="0.0.0.0", port=8080)
