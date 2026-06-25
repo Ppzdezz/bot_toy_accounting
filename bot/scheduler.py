@@ -1,10 +1,14 @@
+import os
 from aiogram import Bot
-from config import BOT_TOKEN
+from dotenv import load_dotenv
 from services import get_all_users, get_sales_today
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-bot = Bot(token=BOT_TOKEN)
+load_dotenv()  # Завантаження змінних середовища з файлу .env
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+bot = Bot(token=BOT_TOKEN)
+    
 async def send_report():
     users = await get_all_users()
     qty, total = await get_sales_today()

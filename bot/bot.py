@@ -8,13 +8,14 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 import aiosqlite
-from config import BOT_TOKEN
+from dotenv import load_dotenv
 from db import DB_NAME, init_db
 from clasess import AddItem, RemoveItem
 from services import get_sales_all_time, get_sales_last_days, get_sales_today
 from scheduler import start_scheduler
 
-
+load_dotenv()  # Завантаження змінних середовища з файлу .env
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -263,11 +264,19 @@ async def handle_photo(message: types.Message):
             return await message.answer(f"❌ API помилка: HTTP {status}{extra}")
 
         if result and result.get("status") == "ok":
+            sales_breakdown = result.get("sales_breakdown", [])
+            breakdown_text = ""
+            if sales_breakdown:
+                lines = []
+                for item in sales_breakdown:
+                    lines.append(f"• {item['sold_count']} шт × {item['price']} грн = {item['earned']} грн")
+                breakdown_text = "\n🧾 Деталі продажів:\n" + "\n".join(lines)
             text = (
                 f"✅ Аналіз завершено!\n\n"
                 f"🧸 Виявлено іграшок: {result['detected_toys']}\n"
                 f"💸 Продано з минулого разу: {result['sold_count']} шт\n"
                 f"💰 Виручка: {result['total_earned']} грн"
+                f"{breakdown_text}"
             )
             await message.answer(text)
         else:
